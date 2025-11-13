@@ -72,10 +72,11 @@ export default function App() {
     return (
         <div className="app-shell">
             <div className="app-card">
-                <h1 className="h1">🎥 Video Tagger</h1>
+                {/* <h1 className="h1">🎥 Video Tagger</h1> */}
 
                 <div className="controls">
-                    <div>Preloaded: <code>/IMG_5481.MOV</code></div>
+                    {/* <div>Preloaded: <code>/IMG_5481.MOV</code></div> */}
+                    <div>Routine Name</div>
                     <div className="spacer">Current: {formatTime(currentTime)}</div>
                 </div>
 
