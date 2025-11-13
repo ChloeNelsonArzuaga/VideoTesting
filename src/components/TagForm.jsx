@@ -12,7 +12,7 @@ export default function TagForm({ tagText, setTagText, onDrop }) {
         placeholder="Tag text (e.g. 'dog appears')"
       />
       <button className="btn btn-success" onClick={onDrop}>
-        Drop Tag
+        Add Tag
       </button>
     </div>
   );
