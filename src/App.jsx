@@ -1,118 +1,60 @@
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import Picker from './pages/Picker';
+import Library from './pages/Library';
+import './styles/index.css';
 
+function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-import React, { useRef, useState, useEffect } from "react";
-import VideoPlayer from "./components/VideoPlayer";
-import TagForm from "./components/TagForm";
-import TagList from "./components/TagList";
-import BottomBar from "./components/BottomBar";
-import useTags from "./hooks/useTags";
-import useIsMobile from "./hooks/useIsMobile";
-import { formatTime } from "./utils/time";
-import "./styles/index.css";
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
-export default function App() {
-    const videoRef = useRef(null);
-    const tagInputRef = useRef(null);
-    const asideRef = useRef(null);
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+      });
 
-    const base = import.meta.env.BASE_URL || "/";
-    const [videoURL] = useState(`${base}IMG_5481.MOV`); // preloaded video in public/
+      if (!response.ok) {
+        setLoading(false);
+        return;
+      }
 
-    const [currentTime, setCurrentTime] = useState(0);
-    const [tagText, setTagText] = useState("");
-    const [showTagPanel, setShowTagPanel] = useState(false); // bring up the panel for editing the tags
-    const isMobile = useIsMobile(900); // check if the website is wide or not and update acordingly
+      const data = await response.json();
 
-    const { tags, addTag, removeTag, searchTags, setTags } = useTags();
+      if (data.authenticated) {
+        setUser(data.user);
+      }
 
-    function handleDrop() {
-        if (!videoRef.current) return;
-        const time = Math.round(videoRef.current.currentTime * 100) / 100;
-        addTag({ text: tagText || "untitled", time });
-        setTagText("");
+      setLoading(false);
+    } catch (err) {
+      console.error('[App] Auth check error:', err);
+      setLoading(false);
     }
+  };
 
-    function handleSeek(tag) {
-        if (!videoRef.current) return;
-        videoRef.current.currentTime = tag.time;
-        videoRef.current.play?.();
-        if (isMobile) setShowTagPanel(false); // close panel on mobile after seeking
-    }
-
-    function handlePlay() {
-        videoRef.current?.play();
-    }
-    function handlePause() {
-        videoRef.current?.pause();
-    }
-
-    function toggleTagPanel() {
-        if (isMobile) {
-            setShowTagPanel((s) => !s);
-        } else {
-            // desktop: scroll/focus the sidebar
-            asideRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-            const firstInteractive = asideRef.current?.querySelector("button, input, a");
-            firstInteractive?.focus?.();
-        }
-    }
-
-    // Focus tag input when panel opens on mobile
-    useEffect(() => {
-        if (showTagPanel && isMobile) {
-            setTimeout(() => tagInputRef.current?.focus(), 120);
-        }
-    }, [showTagPanel, isMobile]);
-
-    // Close panel automatically if we switch to desktop
-    useEffect(() => {
-        if (!isMobile) setShowTagPanel(false);
-    }, [isMobile]);
-
+  if (loading) {
     return (
-        <div className="app-shell">
-            <div className="app-card">
-                {/* <h1 className="h1">🎥 Video Tagger</h1> */}
-
-                <div className="controls">
-                    {/* <div>Preloaded: <code>/IMG_5481.MOV</code></div> */}
-                    <div>Routine Name</div>
-                    <div className="spacer">Current: {formatTime(currentTime)}</div>
-                </div>
-
-                <div className="main-grid">
-                    <div>
-                        <VideoPlayer
-                        ref={videoRef}
-                        src={videoURL}
-                        onTimeUpdate={(t) => setCurrentTime(t)}
-                        />
-                    </div>
-
-                    <aside ref={asideRef} className="aside" aria-hidden={isMobile}>
-                        {/* <SidebarTags tags={tags} onSeek={handleSeek} onRemove={removeTag} /> */}
-                        <TagForm tagText={tagText} setTagText={setTagText} onDrop={handleDrop}/>
-                        <TagList tags={tags} onSeek={handleSeek} onRemove={removeTag}/>
-                    </aside>
-                </div>
-            </div> {/*END APP CARD*/}
-
-
-
-            {/* Tag slide-up panel (hidden by default) */}
-            <div className={`tag-panel ${showTagPanel ? "open" : ""}`} role="dialog" aria-hidden={!showTagPanel}>
-                <TagForm tagText={tagText} setTagText={setTagText} onDrop={handleDrop} />
-
-                <div className="panel-content">
-                    <TagList tags={tags} onSeek={handleSeek} onRemove={removeTag} />
-                </div>
-                
-            </div>
-
-            {/* Bottom control bar */}
-            <BottomBar onPlay={handlePlay} onPause={handlePause} onToggleTag={toggleTagPanel} />
-
-        </div>
-
+      <div className="app-loading">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
     );
+  }
+
+  return (
+    <BrowserRouter basename="/VideoTesting">
+      <Routes>
+        <Route path="/" element={user ? <Navigate to="/picker" /> : <Login />} />
+        <Route path="/picker" element={user ? <Picker /> : <Navigate to="/" />} />
+        <Route path="/library" element={user ? <Library /> : <Navigate to="/" />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
+
+export default App;
